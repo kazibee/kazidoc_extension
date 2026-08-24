@@ -4,7 +4,7 @@
   "description": "Read, write, edit, and organize Kazidoc project files like a remote filesystem.",
   "type": "module",
   "main": "./src/index.ts",
-  "types": "./dist/index.d.ts",
+  "types": "./.kazibee/index.d.ts",
   "command": "./src/command.ts",
   "devDependencies": {
     "@types/bun": "^1.3.8"
