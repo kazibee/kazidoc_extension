@@ -1,0 +1,45 @@
+{
+  "name": "@kazibee/kazidoc",
+  "version": "0.1.0",
+  "description": "Read, write, edit, and organize Kazidoc project files like a remote filesystem.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "command": "./src/command.ts",
+  "devDependencies": {
+    "@types/bun": "^1.3.8"
+  },
+  "kazibee": {
+    "manifestVersion": 1,
+    "id": "kazidoc",
+    "description": "Read, write, edit, and organize Kazidoc project files like a remote filesystem.",
+    "brief": "Navigate, read, grep, write, edit, and reorganize a Kazidoc project's files and folders, including CSV workbooks.",
+    "tags": [
+      "kazidoc",
+      "documents",
+      "markdown",
+      "files",
+      "folders",
+      "remote-filesystem",
+      "projects",
+      "notes",
+      "csv",
+      "workbook",
+      "read",
+      "write",
+      "edit",
+      "grep"
+    ],
+    "manual": "./llm.txt",
+    "permissions": "./permissions.json",
+    "auth": {
+      "type": "api_key",
+      "setupCommand": "login"
+    },
+    "commands": {
+      "login": {
+        "description": "Store the Kazidoc API key (kzd_...) and project id as tool env vars"
+      }
+    }
+  }
+}

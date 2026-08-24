@@ -1,0 +1,77 @@
+Tool: kazidoc
+Package: @kazibee/kazidoc
+
+Use this tool to work with one Kazidoc project as a remote filesystem: navigate
+folders, read and grep text files, write and edit documents, and reorganize the
+tree. Paths are project-relative ("notes/intro.md"), never absolute.
+
+Auth requirements
+- KAZIDOC_API_KEY (kzd_...), KAZIDOC_PROJECT_ID (p_...)
+- Optional KAZIDOC_API_URL for local dev (default https://api.kazidoc.com)
+- If auth fails, instruct user to run: kazibee kazidoc login <API_KEY> <PROJECT_ID>
+
+Typical intents to map
+- "what's in the project"        -> listdir(path?)          ("" = root)
+- "find where X is mentioned"    -> grep(pattern, path?, include?)
+- "read the doc"                 -> read(path)
+- "read part of a big file"      -> readRange(path, startLine, endLine)
+- "create/overwrite a doc"       -> write(path, content)
+- "change this text"             -> editReplace(path, textToReplace, newContent)
+- "add a line after X"           -> editInsert(path, line, content)
+- "remove this line"             -> editDelete(path, line)
+- "rewrite lines N-M"            -> readRange(...) then rangeReplace(handleId, newContent)
+- "re-indent this block"         -> readRange(...) then rangeIndent(handleId, spaces)
+- "make a folder"                -> mkdir(path)
+- "rename/move"                  -> move(from, to)
+- "duplicate"                    -> copy(from, to)
+- "delete"                       -> delete(path)
+
+Reading rules (important)
+- read() returns line-numbered content and is DENIED for files over 1000 lines
+  (errorCode READ_TOO_LARGE). Do not retry the full read: grep() to locate the
+  relevant line numbers, then readRange() for just that section.
+- readRange() serves at most 1000 lines per call; endLine clamps to file length.
+- Line numbers in returned content are display only — never include them when
+  writing or editing.
+
+Editing rules
+- editReplace/editInsert/editDelete require EXACT, UNIQUE current text. On
+  EDIT_AMBIGUOUS, expand the target with surrounding context; on EDIT_NO_MATCH,
+  re-read the file first.
+- rangeReplace/rangeIndent take the handleId from a readRange call. Handles are
+  verify-at-use: if the file changed since the read, the call fails with
+  STALE_HANDLE — call readRange again and retry with the fresh handle.
+- Every error response includes errorCode, message, and requiredAction telling
+  you exactly how to recover.
+
+CSV workbooks
+- A FOLDER whose name ends in .csv (e.g. "pricing.csv") renders as one workbook;
+  each *.csv file inside is a tab, ordered by filename (numeric prefixes like
+  "01_" control order and are stripped from tab labels).
+- "pricing.csv/index.css" styles every tab; "pricing.csv/02_by_region.csv.css"
+  overrides one tab. Companion .css files are attached assets, not tabs.
+- Build workbooks with ordinary mkdir + write calls — no special API.
+
+Code call examples
+Every sandbox module must use this entry-point shape:
+```ts
+export default async function ({ tools }) {
+  const kazidoc = tools["kazidoc"];
+  const root = await kazidoc.listdir();
+  return root;
+}
+```
+
+Within that function, calls look like:
+```ts
+const doc = await tools["kazidoc"].read("notes/intro.md");
+const hits = await tools["kazidoc"].grep("pricing", undefined, "*.md");
+await tools["kazidoc"].write("notes/summary.md", "# Summary\n\n...");
+const range = await tools["kazidoc"].readRange("notes/long.md", 120, 160);
+if (range.ok) await tools["kazidoc"].rangeReplace(range.handleId, "new section text");
+await tools["kazidoc"].mkdir("pricing.csv");
+await tools["kazidoc"].write("pricing.csv/01_summary.csv", "region,price\neast,10");
+await tools["kazidoc"].move("notes/draft.md", "archive/draft.md");
+```
+
+Always check `.ok` before using a result; on `ok: false`, follow `requiredAction`.
