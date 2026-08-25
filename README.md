@@ -23,8 +23,8 @@ kazibee kazidoc login <API_KEY> http://localhost:6100
 The key is project-scoped, so the project is detected automatically — no
 project id to configure. Login verifies the key against the live API before
 storing it as tool env vars (`KAZIDOC_API_KEY`, optional `KAZIDOC_API_URL`).
-Pasted Kazidoc URLs (`https://kazidoc.com/p/<id>/<path>`) are accepted
-anywhere a path is expected.
+Pasted Kazidoc drive URLs (`https://kazidoc.com/drive/<id>/<path>`) are
+accepted anywhere a path is expected.
 
 ## Usage (code sandbox)
 

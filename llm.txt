@@ -3,9 +3,10 @@ Package: @kazibee/kazidoc
 
 Use this tool to work with one Kazidoc project as a remote filesystem: navigate
 folders, read and grep text files, write and edit documents, and reorganize the
-tree. Paths are project-relative ("notes/intro.md"). A pasted Kazidoc URL like
-https://kazidoc.com/p/p_abc123XYZ456/notes/intro.md is also accepted anywhere a
-path is expected — the project prefix is stripped automatically.
+tree. Paths are project-relative ("notes/intro.md"). A pasted Kazidoc drive URL
+like https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md is also accepted
+anywhere a path is expected — the /drive/<project> prefix is stripped
+automatically (works for localhost dev URLs too).
 
 Auth requirements
 - KAZIDOC_API_KEY (kzd_...) — project-scoped; the project is detected from the
