@@ -74,20 +74,18 @@ export function createClient(env: Env) {
   }
 
   /**
-   * Accept plain project-relative paths OR pasted Kazidoc URLs, e.g.
-   *   https://kazidoc.com/p/p_abc123XYZ456/notes/intro.md
+   * Accept plain project-relative paths OR pasted Kazidoc drive URLs, e.g.
+   *   https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md
    *   http://localhost:6001/drive/p_abc123XYZ456/notes/intro.md
-   * The /p/<id> or /drive/<id> prefix is stripped; the key's project is
-   * authoritative and a mismatched id fails fast.
+   * The /drive/<id> prefix is stripped; the key's project is authoritative
+   * and a mismatched id fails fast.
    */
   function toPath(input: string): string {
     if (!/^https?:\/\//i.test(input)) return input;
     const url = new URL(input);
-    const match = url.pathname.match(/^\/(?:p|drive)\/(p_[A-Za-z0-9]+)(?:\/(.*))?$/);
+    const match = url.pathname.match(/^\/drive\/(p_[A-Za-z0-9]+)(?:\/(.*))?$/);
     if (!match) {
-      throw new Error(
-        `Not a Kazidoc project URL: ${input}. Expected .../p/<project>/<path> or .../drive/<project>/<path>`,
-      );
+      throw new Error(`Not a Kazidoc project URL: ${input}. Expected .../drive/<project>/<path>`);
     }
     if (projectId && match[1] !== projectId) {
       throw new Error(`URL points at project ${match[1]}, but this API key belongs to ${projectId}.`);
