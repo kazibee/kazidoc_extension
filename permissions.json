@@ -1,7 +1,8 @@
 {
   "net": [
     "api.kazidoc.com",
-    "localhost:6005"
+    "localhost:6005",
+    "localhost:6100"
   ],
   "env": {
     "KAZIDOC_API_KEY": "KAZIDOC_API_KEY",
