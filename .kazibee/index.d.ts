@@ -7,7 +7,6 @@
  */
 export interface Env {
 	KAZIDOC_API_KEY?: string;
-	KAZIDOC_PROJECT_ID?: string;
 	/** Override for local development, e.g. http://localhost:6005 */
 	KAZIDOC_API_URL?: string;
 }
@@ -92,7 +91,7 @@ export type DeleteResult = {
 	deleted: number;
 } | FsError;
 declare function createClient(env: Env): {
-	/** List a directory. Omit path (or pass "") for the project root. */
+	/** List a directory. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL. */
 	listdir: (path?: string) => Promise<ListDirResult>;
 	/** Regex search across the project's text files. include is a glob like "*.md". */
 	grep: (pattern: string, path?: string, include?: string) => Promise<GrepResult>;
