@@ -3,12 +3,15 @@ Package: @kazibee/kazidoc
 
 Use this tool to work with one Kazidoc project as a remote filesystem: navigate
 folders, read and grep text files, write and edit documents, and reorganize the
-tree. Paths are project-relative ("notes/intro.md"), never absolute.
+tree. Paths are project-relative ("notes/intro.md"). A pasted Kazidoc URL like
+https://kazidoc.com/p/p_abc123XYZ456/notes/intro.md is also accepted anywhere a
+path is expected — the project prefix is stripped automatically.
 
 Auth requirements
-- KAZIDOC_API_KEY (kzd_...), KAZIDOC_PROJECT_ID (p_...)
+- KAZIDOC_API_KEY (kzd_...) — project-scoped; the project is detected from the
+  key automatically, no project id configuration exists.
 - Optional KAZIDOC_API_URL for local dev (default https://api.kazidoc.com)
-- If auth fails, instruct user to run: kazibee kazidoc login <API_KEY> <PROJECT_ID>
+- If auth fails, instruct user to run: kazibee kazidoc login <API_KEY>
 
 Typical intents to map
 - "what's in the project"        -> listdir(path?)          ("" = root)

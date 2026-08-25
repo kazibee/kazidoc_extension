@@ -6,7 +6,6 @@
   ],
   "env": {
     "KAZIDOC_API_KEY": "KAZIDOC_API_KEY",
-    "KAZIDOC_PROJECT_ID": "KAZIDOC_PROJECT_ID",
     "KAZIDOC_API_URL": "KAZIDOC_API_URL"
   }
 }
