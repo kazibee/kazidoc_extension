@@ -1,34 +1,45 @@
 Tool: kazidoc
 Package: @kazibee/kazidoc
 
-Use this tool to work with one Kazidoc project as a remote filesystem: navigate
+Use this tool to work with Kazidoc projects as remote filesystems: navigate
 folders, read and grep text files, write and edit documents, and reorganize the
-tree. Paths are project-relative ("notes/intro.md"). A pasted Kazidoc drive URL
-like https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md is also accepted
-anywhere a path is expected — the /drive/<project> prefix is stripped
-automatically (works for localhost dev URLs too).
+tree. The client is multi-project: EVERY filesystem method requires an explicit
+projectId (p_...) as its FIRST argument. Paths are project-relative
+("notes/intro.md"). A pasted Kazidoc drive URL like
+https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md is also accepted
+anywhere a path is expected — the /drive/<project> prefix is stripped, and it
+must match the projectId passed to the call (a mismatch fails fast).
+
+Resolving the projectId
+- getId(urlOrId) -> resolves a pasted drive URL (or bare p_... id) to a
+  VERIFIED project id this key can access. Use this first when the user gives
+  a URL.
+- listProjects() -> [{ project_id, name }] for all accessible projects. Use
+  when no URL is given and the target project is ambiguous.
+- There is no bound/default project; never guess an id — resolve it.
 
 Auth requirements
-- KAZIDOC_API_KEY (kzd_...) — project-scoped; the project is detected from the
-  key automatically, no project id configuration exists.
+- KAZIDOC_API_KEY (kzd_...) — may access one or many projects.
 - Optional KAZIDOC_API_URL for local dev (default https://api.kazidoc.com)
 - If auth fails, instruct user to run: kazibee kazidoc login <API_KEY>
 
-Typical intents to map
-- "what's in the project"        -> listdir(path?)          ("" = root)
-- "find where X is mentioned"    -> grep(pattern, path?, include?)
-- "read the doc"                 -> read(path)
-- "read part of a big file"      -> readRange(path, startLine, endLine)
-- "create/overwrite a doc"       -> write(path, content)
-- "change this text"             -> editReplace(path, textToReplace, newContent)
-- "add a line after X"           -> editInsert(path, line, content)
-- "remove this line"             -> editDelete(path, line)
-- "rewrite lines N-M"            -> readRange(...) then rangeReplace(handleId, newContent)
-- "re-indent this block"         -> readRange(...) then rangeIndent(handleId, spaces)
-- "make a folder"                -> mkdir(path)
-- "rename/move"                  -> move(from, to)
-- "duplicate"                    -> copy(from, to)
-- "delete"                       -> delete(path)
+Typical intents to map (pid = resolved projectId)
+- "which project is this URL"    -> getId(url)
+- "what projects can I use"      -> listProjects()
+- "what's in the project"        -> listdir(pid, path?)          ("" = root)
+- "find where X is mentioned"    -> grep(pid, pattern, path?, include?)
+- "read the doc"                 -> read(pid, path)
+- "read part of a big file"      -> readRange(pid, path, startLine, endLine)
+- "create/overwrite a doc"       -> write(pid, path, content)
+- "change this text"             -> editReplace(pid, path, textToReplace, newContent)
+- "add a line after X"           -> editInsert(pid, path, line, content)
+- "remove this line"             -> editDelete(pid, path, line)
+- "rewrite lines N-M"            -> readRange(...) then rangeReplace(pid, handleId, newContent)
+- "re-indent this block"         -> readRange(...) then rangeIndent(pid, handleId, spaces)
+- "make a folder"                -> mkdir(pid, path)
+- "rename/move"                  -> move(pid, from, to)
+- "duplicate"                    -> copy(pid, from, to)
+- "delete"                       -> delete(pid, path)
 
 Reading rules (important)
 - read() returns line-numbered content and is DENIED for files over 1000 lines
@@ -61,21 +72,23 @@ Every sandbox module must use this entry-point shape:
 ```ts
 export default async function ({ tools }) {
   const kazidoc = tools["kazidoc"];
-  const root = await kazidoc.listdir();
+  const pid = await kazidoc.getId("https://kazidoc.com/drive/p_abc123XYZ456");
+  const root = await kazidoc.listdir(pid);
   return root;
 }
 ```
 
 Within that function, calls look like:
 ```ts
-const doc = await tools["kazidoc"].read("notes/intro.md");
-const hits = await tools["kazidoc"].grep("pricing", undefined, "*.md");
-await tools["kazidoc"].write("notes/summary.md", "# Summary\n\n...");
-const range = await tools["kazidoc"].readRange("notes/long.md", 120, 160);
-if (range.ok) await tools["kazidoc"].rangeReplace(range.handleId, "new section text");
-await tools["kazidoc"].mkdir("pricing.csv");
-await tools["kazidoc"].write("pricing.csv/01_summary.csv", "region,price\neast,10");
-await tools["kazidoc"].move("notes/draft.md", "archive/draft.md");
+const pid = await tools["kazidoc"].getId(userSuppliedUrl);
+const doc = await tools["kazidoc"].read(pid, "notes/intro.md");
+const hits = await tools["kazidoc"].grep(pid, "pricing", undefined, "*.md");
+await tools["kazidoc"].write(pid, "notes/summary.md", "# Summary\n\n...");
+const range = await tools["kazidoc"].readRange(pid, "notes/long.md", 120, 160);
+if (range.ok) await tools["kazidoc"].rangeReplace(pid, range.handleId, "new section text");
+await tools["kazidoc"].mkdir(pid, "pricing.csv");
+await tools["kazidoc"].write(pid, "pricing.csv/01_summary.csv", "region,price\neast,10");
+await tools["kazidoc"].move(pid, "notes/draft.md", "archive/draft.md");
 ```
 
 Always check `.ok` before using a result; on `ok: false`, follow `requiredAction`.

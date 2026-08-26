@@ -1,20 +1,17 @@
 /**
  * Typed client for the Kazidoc agent API (api.kazidoc.com).
  *
- * Every method targets one project (from env) and returns the API's JSON
- * verbatim — success payloads and fail-closed error envelopes alike, so the
- * model always sees errorCode/message/requiredAction for recovery.
+ * Multi-project: every filesystem method requires an explicit projectId
+ * (p_...) as its first argument. Use getId(url) to resolve a pasted Kazidoc
+ * drive URL to its project id, or listProjects() to enumerate accessible
+ * projects. Results return the API's JSON verbatim — success payloads and
+ * fail-closed error envelopes alike, so the model always sees
+ * errorCode/message/requiredAction for recovery.
  */
 export interface Env {
 	KAZIDOC_API_KEY?: string;
 	/** Override for local development, e.g. http://localhost:6005 */
 	KAZIDOC_API_URL?: string;
-	/**
-	 * The project this workspace is bound to (p_...). Keys may access many
-	 * projects; when unset, the single accessible project is auto-selected and
-	 * multiple projects raise an error listing the choices.
-	 */
-	KAZIDOC_PROJECT_ID?: string;
 }
 export interface FsError {
 	ok: false;
@@ -29,6 +26,10 @@ export interface ListDirEntry {
 	name: string;
 	path: string;
 	kind: "file" | "dir";
+}
+export interface ProjectEntry {
+	project_id: string;
+	name: string;
 }
 export type ListDirResult = {
 	ok: true;
@@ -95,59 +96,56 @@ export type DeleteResult = {
 } | FsError;
 declare function createClient(env: Env): {
 	/** List the projects this API key can access (project_id + name). */
-	listProjects: () => Promise<Array<{
-		project_id: string;
-		name: string;
-	}>>;
-	/** List a directory. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL. */
-	listdir: (path?: string) => Promise<ListDirResult>;
-	/** Regex search across the project's text files. include is a glob like "*.md". */
-	grep: (pattern: string, path?: string, include?: string) => Promise<GrepResult>;
+	listProjects: () => Promise<ProjectEntry[]>;
+	/** Resolve a pasted Kazidoc drive URL (or bare p_... id) to a verified, accessible project id. */
+	getId: (urlOrId: string) => Promise<string>;
+	/** List a directory in a project. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL as path. */
+	listdir: (projectId: string, path?: string) => Promise<ListDirResult>;
+	/** Regex search across a project's text files. include is a glob like "*.md". */
+	grep: (projectId: string, pattern: string, path?: string, include?: string) => Promise<GrepResult>;
 	/** Read a full file (line-numbered). Files over 1000 lines are denied — use grep + readRange. */
-	read: (path: string) => Promise<ReadResult>;
+	read: (projectId: string, path: string) => Promise<ReadResult>;
 	/** Read up to 1000 lines; endLine clamps to file length. Returns handleId for range edits. */
-	readRange: (path: string, startLine: number, endLine: number) => Promise<ReadRangeResult>;
+	readRange: (projectId: string, path: string, startLine: number, endLine: number) => Promise<ReadRangeResult>;
 	/** Create or fully replace a text file. Ancestor folders are auto-created. */
-	write: (path: string, content: string) => Promise<WriteResult>;
+	write: (projectId: string, path: string, content: string) => Promise<WriteResult>;
 	/** Replace one exact, unique text span. Ambiguous or missing targets are rejected. */
-	editReplace: (path: string, textToReplace: string, newContent: string) => Promise<EditResult>;
+	editReplace: (projectId: string, path: string, textToReplace: string, newContent: string) => Promise<EditResult>;
 	/** Insert content after one exact, unique anchor line. */
-	editInsert: (path: string, line: string, content: string) => Promise<EditResult>;
+	editInsert: (projectId: string, path: string, line: string, content: string) => Promise<EditResult>;
 	/** Delete one exact, unique line. */
-	editDelete: (path: string, line: string) => Promise<EditResult>;
+	editDelete: (projectId: string, path: string, line: string) => Promise<EditResult>;
 	/** Replace the exact span named by a readRange handleId. Empty string deletes the span. */
-	rangeReplace: (id: string, newContent: string) => Promise<EditResult>;
+	rangeReplace: (projectId: string, id: string, newContent: string) => Promise<EditResult>;
 	/** Set the absolute indentation (spaces) of the span named by a handleId. */
-	rangeIndent: (id: string, indent: number) => Promise<EditResult>;
+	rangeIndent: (projectId: string, id: string, indent: number) => Promise<EditResult>;
 	/** Create a directory (idempotent). A folder named like "pricing.csv" is a CSV workbook. */
-	mkdir: (path: string) => Promise<MkdirResult>;
+	mkdir: (projectId: string, path: string) => Promise<MkdirResult>;
 	/** Move or rename a file or an entire folder subtree. */
-	move: (from: string, to: string) => Promise<TransferResult>;
+	move: (projectId: string, from: string, to: string) => Promise<TransferResult>;
 	/** Copy a file or an entire folder subtree. */
-	copy: (from: string, to: string) => Promise<TransferResult>;
+	copy: (projectId: string, from: string, to: string) => Promise<TransferResult>;
 	/** Delete a file or an entire folder subtree. */
-	delete: (path: string) => Promise<DeleteResult>;
+	delete: (projectId: string, path: string) => Promise<DeleteResult>;
 };
 export type KazidocClient = ReturnType<typeof createClient>;
 declare function main(env: Env): {
-	listProjects: () => Promise<Array<{
-		project_id: string;
-		name: string;
-	}>>;
-	listdir: (path?: string) => Promise<ListDirResult>;
-	grep: (pattern: string, path?: string, include?: string) => Promise<GrepResult>;
-	read: (path: string) => Promise<ReadResult>;
-	readRange: (path: string, startLine: number, endLine: number) => Promise<ReadRangeResult>;
-	write: (path: string, content: string) => Promise<WriteResult>;
-	editReplace: (path: string, textToReplace: string, newContent: string) => Promise<EditResult>;
-	editInsert: (path: string, line: string, content: string) => Promise<EditResult>;
-	editDelete: (path: string, line: string) => Promise<EditResult>;
-	rangeReplace: (id: string, newContent: string) => Promise<EditResult>;
-	rangeIndent: (id: string, indent: number) => Promise<EditResult>;
-	mkdir: (path: string) => Promise<MkdirResult>;
-	move: (from: string, to: string) => Promise<TransferResult>;
-	copy: (from: string, to: string) => Promise<TransferResult>;
-	delete: (path: string) => Promise<DeleteResult>;
+	listProjects: () => Promise<ProjectEntry[]>;
+	getId: (urlOrId: string) => Promise<string>;
+	listdir: (projectId: string, path?: string) => Promise<ListDirResult>;
+	grep: (projectId: string, pattern: string, path?: string, include?: string) => Promise<GrepResult>;
+	read: (projectId: string, path: string) => Promise<ReadResult>;
+	readRange: (projectId: string, path: string, startLine: number, endLine: number) => Promise<ReadRangeResult>;
+	write: (projectId: string, path: string, content: string) => Promise<WriteResult>;
+	editReplace: (projectId: string, path: string, textToReplace: string, newContent: string) => Promise<EditResult>;
+	editInsert: (projectId: string, path: string, line: string, content: string) => Promise<EditResult>;
+	editDelete: (projectId: string, path: string, line: string) => Promise<EditResult>;
+	rangeReplace: (projectId: string, id: string, newContent: string) => Promise<EditResult>;
+	rangeIndent: (projectId: string, id: string, indent: number) => Promise<EditResult>;
+	mkdir: (projectId: string, path: string) => Promise<MkdirResult>;
+	move: (projectId: string, from: string, to: string) => Promise<TransferResult>;
+	copy: (projectId: string, from: string, to: string) => Promise<TransferResult>;
+	delete: (projectId: string, path: string) => Promise<DeleteResult>;
 };
 
 export {

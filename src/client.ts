@@ -1,21 +1,18 @@
 /**
  * Typed client for the Kazidoc agent API (api.kazidoc.com).
  *
- * Every method targets one project (from env) and returns the API's JSON
- * verbatim — success payloads and fail-closed error envelopes alike, so the
- * model always sees errorCode/message/requiredAction for recovery.
+ * Multi-project: every filesystem method requires an explicit projectId
+ * (p_...) as its first argument. Use getId(url) to resolve a pasted Kazidoc
+ * drive URL to its project id, or listProjects() to enumerate accessible
+ * projects. Results return the API's JSON verbatim — success payloads and
+ * fail-closed error envelopes alike, so the model always sees
+ * errorCode/message/requiredAction for recovery.
  */
 
 export interface Env {
   KAZIDOC_API_KEY?: string;
   /** Override for local development, e.g. http://localhost:6005 */
   KAZIDOC_API_URL?: string;
-  /**
-   * The project this workspace is bound to (p_...). Keys may access many
-   * projects; when unset, the single accessible project is auto-selected and
-   * multiple projects raise an error listing the choices.
-   */
-  KAZIDOC_PROJECT_ID?: string;
 }
 
 export interface FsError {
@@ -34,6 +31,11 @@ export interface ListDirEntry {
   kind: "file" | "dir";
 }
 
+export interface ProjectEntry {
+  project_id: string;
+  name: string;
+}
+
 export type ListDirResult = { ok: true; path: string; entries: ListDirEntry[] } | FsError;
 export type ReadResult = { ok: true; mode: "full"; content: string; lines: number; path: string } | FsError;
 export type ReadRangeResult =
@@ -48,6 +50,9 @@ export type MkdirResult = { ok: true; path: string } | FsError;
 export type TransferResult = { ok: true; from: string; to: string; moved: number } | FsError;
 export type DeleteResult = { ok: true; path: string; deleted: number } | FsError;
 
+const PROJECT_ID_PATTERN = /^p_[A-Za-z0-9]+$/;
+const DRIVE_URL_PATTERN = /^\/drive\/(p_[A-Za-z0-9]+)(?:\/(.*))?$/;
+
 export function createClient(env: Env) {
   const key = env.KAZIDOC_API_KEY;
   const base = (env.KAZIDOC_API_URL ?? "https://api.kazidoc.com").replace(/\/$/, "");
@@ -55,20 +60,12 @@ export function createClient(env: Env) {
     throw new Error("Missing KAZIDOC_API_KEY. Run: kazibee kazidoc login <API_KEY>");
   }
 
-  /**
-   * A key may access many projects. The bound project comes from
-   * KAZIDOC_PROJECT_ID when configured; otherwise it is discovered from
-   * GET /v1/projects — auto-selected when exactly one project is accessible,
-   * and an error listing the choices when there are several.
-   */
-  let projectId: string | null = env.KAZIDOC_PROJECT_ID ?? null;
-
-  async function listProjects(): Promise<Array<{ project_id: string; name: string }>> {
+  async function listProjects(): Promise<ProjectEntry[]> {
     const response = await fetch(`${base}/v1/projects`, {
       headers: { authorization: `Bearer ${key}` },
     });
     const body = (await response.json().catch(() => ({}))) as {
-      projects?: Array<{ project_id: string; name: string }>;
+      projects?: ProjectEntry[];
       message?: string;
     };
     if (!response.ok || !Array.isArray(body.projects)) {
@@ -80,52 +77,79 @@ export function createClient(env: Env) {
     return body.projects;
   }
 
-  async function root(): Promise<string> {
-    if (projectId) return `${base}/v1/projects/${projectId}`;
+  /**
+   * Resolve a pasted Kazidoc drive URL (or a bare p_... id) to a verified
+   * project id this API key can access.
+   *   https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md -> p_abc123XYZ456
+   */
+  async function getId(urlOrId: string): Promise<string> {
+    let candidate: string;
+    if (PROJECT_ID_PATTERN.test(urlOrId)) {
+      candidate = urlOrId;
+    } else if (/^https?:\/\//i.test(urlOrId)) {
+      const url = new URL(urlOrId);
+      const match = url.pathname.match(DRIVE_URL_PATTERN);
+      if (!match) {
+        throw new Error(`Not a Kazidoc project URL: ${urlOrId}. Expected .../drive/<project>/<path>`);
+      }
+      candidate = match[1];
+    } else {
+      throw new Error(
+        `Cannot resolve a project id from "${urlOrId}". Pass a Kazidoc drive URL ` +
+          "(https://kazidoc.com/drive/p_.../...) or a p_... project id.",
+      );
+    }
     const projects = await listProjects();
-    if (projects.length === 0) {
+    const found = projects.find((p) => p.project_id === candidate);
+    if (!found) {
+      const options = projects.map((p) => `${p.name} (${p.project_id})`).join(", ") || "none";
       throw new Error(
-        "This Kazidoc API key has no accessible projects. Grant it project access " +
-          "in the Kazidoc web app under Settings -> API keys.",
+        `This API key cannot access project ${candidate}. Accessible projects: ${options}.`,
       );
     }
-    if (projects.length > 1) {
-      const options = projects.map((p) => `${p.name} (${p.project_id})`).join(", ");
+    return found.project_id;
+  }
+
+  function requireProjectId(projectId: string): string {
+    if (!PROJECT_ID_PATTERN.test(projectId)) {
       throw new Error(
-        `This Kazidoc API key can access ${projects.length} projects: ${options}. ` +
-          "Choose one: kazibee kazidoc login <API_KEY> --project <projectId>",
+        `Invalid projectId "${projectId}". Every call requires a p_... project id ` +
+          "as its first argument. Resolve one from a URL with getId(url) or list " +
+          "choices with listProjects().",
       );
     }
-    projectId = projects[0].project_id;
-    return `${base}/v1/projects/${projectId}`;
+    return projectId;
   }
 
   /**
    * Accept plain project-relative paths OR pasted Kazidoc drive URLs, e.g.
    *   https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md
-   *   http://localhost:6001/drive/p_abc123XYZ456/notes/intro.md
-   * The /drive/<id> prefix is stripped; the configured/selected project is
-   * authoritative and a mismatched id fails fast — a pasted URL never
-   * switches the bound project.
+   * The /drive/<id> prefix is stripped; the explicitly supplied projectId is
+   * authoritative and a mismatched URL fails fast — a pasted URL never
+   * switches the target project.
    */
-  function toPath(input: string): string {
+  function toPath(projectId: string, input: string): string {
     if (!/^https?:\/\//i.test(input)) return input;
     const url = new URL(input);
-    const match = url.pathname.match(/^\/drive\/(p_[A-Za-z0-9]+)(?:\/(.*))?$/);
+    const match = url.pathname.match(DRIVE_URL_PATTERN);
     if (!match) {
       throw new Error(`Not a Kazidoc project URL: ${input}. Expected .../drive/<project>/<path>`);
     }
-    if (projectId && match[1] !== projectId) {
+    if (match[1] !== projectId) {
       throw new Error(
-        `URL points at project ${match[1]}, but this workspace is bound to ${projectId}. ` +
-          "Rebind with: kazibee kazidoc login <API_KEY> --project " + match[1],
+        `URL points at project ${match[1]}, but this call targets ${projectId}. ` +
+          "Pass the matching projectId (resolve it with getId(url)).",
       );
     }
     return decodeURIComponent(match[2] ?? "");
   }
 
-  async function get(pathname: string, params: Record<string, string | number | undefined>): Promise<unknown> {
-    const url = new URL(`${await root()}/${pathname}`);
+  function root(projectId: string): string {
+    return `${base}/v1/projects/${requireProjectId(projectId)}`;
+  }
+
+  async function get(projectId: string, pathname: string, params: Record<string, string | number | undefined>): Promise<unknown> {
+    const url = new URL(`${root(projectId)}/${pathname}`);
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined) url.searchParams.set(k, String(v));
     }
@@ -133,8 +157,8 @@ export function createClient(env: Env) {
     return response.json();
   }
 
-  async function post(pathname: string, payload: Record<string, unknown>): Promise<unknown> {
-    const response = await fetch(`${await root()}/${pathname}`, {
+  async function post(projectId: string, pathname: string, payload: Record<string, unknown>): Promise<unknown> {
+    const response = await fetch(`${root(projectId)}/${pathname}`, {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
       body: JSON.stringify(payload),
@@ -144,59 +168,66 @@ export function createClient(env: Env) {
 
   return {
     /** List the projects this API key can access (project_id + name). */
-    listProjects: (): Promise<Array<{ project_id: string; name: string }>> => listProjects(),
+    listProjects: (): Promise<ProjectEntry[]> => listProjects(),
 
-    /** List a directory. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL. */
-    listdir: (path = ""): Promise<ListDirResult> => get("listdir", { path: toPath(path) }) as Promise<ListDirResult>,
+    /** Resolve a pasted Kazidoc drive URL (or bare p_... id) to a verified, accessible project id. */
+    getId: (urlOrId: string): Promise<string> => getId(urlOrId),
 
-    /** Regex search across the project's text files. include is a glob like "*.md". */
-    grep: (pattern: string, path?: string, include?: string): Promise<GrepResult> =>
-      get("grep", { pattern, path: path ? toPath(path) : undefined, include }) as Promise<GrepResult>,
+    /** List a directory in a project. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL as path. */
+    listdir: (projectId: string, path = ""): Promise<ListDirResult> =>
+      get(projectId, "listdir", { path: toPath(projectId, path) }) as Promise<ListDirResult>,
+
+    /** Regex search across a project's text files. include is a glob like "*.md". */
+    grep: (projectId: string, pattern: string, path?: string, include?: string): Promise<GrepResult> =>
+      get(projectId, "grep", { pattern, path: path ? toPath(projectId, path) : undefined, include }) as Promise<GrepResult>,
 
     /** Read a full file (line-numbered). Files over 1000 lines are denied — use grep + readRange. */
-    read: (path: string): Promise<ReadResult> => get("read", { path: toPath(path) }) as Promise<ReadResult>,
+    read: (projectId: string, path: string): Promise<ReadResult> =>
+      get(projectId, "read", { path: toPath(projectId, path) }) as Promise<ReadResult>,
 
     /** Read up to 1000 lines; endLine clamps to file length. Returns handleId for range edits. */
-    readRange: (path: string, startLine: number, endLine: number): Promise<ReadRangeResult> =>
-      get("read_range", { path: toPath(path), startLine, endLine }) as Promise<ReadRangeResult>,
+    readRange: (projectId: string, path: string, startLine: number, endLine: number): Promise<ReadRangeResult> =>
+      get(projectId, "read_range", { path: toPath(projectId, path), startLine, endLine }) as Promise<ReadRangeResult>,
 
     /** Create or fully replace a text file. Ancestor folders are auto-created. */
-    write: (path: string, content: string): Promise<WriteResult> =>
-      post("write", { path: toPath(path), content }) as Promise<WriteResult>,
+    write: (projectId: string, path: string, content: string): Promise<WriteResult> =>
+      post(projectId, "write", { path: toPath(projectId, path), content }) as Promise<WriteResult>,
 
     /** Replace one exact, unique text span. Ambiguous or missing targets are rejected. */
-    editReplace: (path: string, textToReplace: string, newContent: string): Promise<EditResult> =>
-      post("edit_replace", { path: toPath(path), textToReplace, newContent }) as Promise<EditResult>,
+    editReplace: (projectId: string, path: string, textToReplace: string, newContent: string): Promise<EditResult> =>
+      post(projectId, "edit_replace", { path: toPath(projectId, path), textToReplace, newContent }) as Promise<EditResult>,
 
     /** Insert content after one exact, unique anchor line. */
-    editInsert: (path: string, line: string, content: string): Promise<EditResult> =>
-      post("edit_insert", { path: toPath(path), line, content }) as Promise<EditResult>,
+    editInsert: (projectId: string, path: string, line: string, content: string): Promise<EditResult> =>
+      post(projectId, "edit_insert", { path: toPath(projectId, path), line, content }) as Promise<EditResult>,
 
     /** Delete one exact, unique line. */
-    editDelete: (path: string, line: string): Promise<EditResult> =>
-      post("edit_delete", { path: toPath(path), line }) as Promise<EditResult>,
+    editDelete: (projectId: string, path: string, line: string): Promise<EditResult> =>
+      post(projectId, "edit_delete", { path: toPath(projectId, path), line }) as Promise<EditResult>,
 
     /** Replace the exact span named by a readRange handleId. Empty string deletes the span. */
-    rangeReplace: (id: string, newContent: string): Promise<EditResult> =>
-      post("range_replace", { id, newContent }) as Promise<EditResult>,
+    rangeReplace: (projectId: string, id: string, newContent: string): Promise<EditResult> =>
+      post(projectId, "range_replace", { id, newContent }) as Promise<EditResult>,
 
     /** Set the absolute indentation (spaces) of the span named by a handleId. */
-    rangeIndent: (id: string, indent: number): Promise<EditResult> =>
-      post("range_indent", { id, indent }) as Promise<EditResult>,
+    rangeIndent: (projectId: string, id: string, indent: number): Promise<EditResult> =>
+      post(projectId, "range_indent", { id, indent }) as Promise<EditResult>,
 
     /** Create a directory (idempotent). A folder named like "pricing.csv" is a CSV workbook. */
-    mkdir: (path: string): Promise<MkdirResult> => post("mkdir", { path: toPath(path) }) as Promise<MkdirResult>,
+    mkdir: (projectId: string, path: string): Promise<MkdirResult> =>
+      post(projectId, "mkdir", { path: toPath(projectId, path) }) as Promise<MkdirResult>,
 
     /** Move or rename a file or an entire folder subtree. */
-    move: (from: string, to: string): Promise<TransferResult> =>
-      post("move", { from: toPath(from), to: toPath(to) }) as Promise<TransferResult>,
+    move: (projectId: string, from: string, to: string): Promise<TransferResult> =>
+      post(projectId, "move", { from: toPath(projectId, from), to: toPath(projectId, to) }) as Promise<TransferResult>,
 
     /** Copy a file or an entire folder subtree. */
-    copy: (from: string, to: string): Promise<TransferResult> =>
-      post("copy", { from: toPath(from), to: toPath(to) }) as Promise<TransferResult>,
+    copy: (projectId: string, from: string, to: string): Promise<TransferResult> =>
+      post(projectId, "copy", { from: toPath(projectId, from), to: toPath(projectId, to) }) as Promise<TransferResult>,
 
     /** Delete a file or an entire folder subtree. */
-    delete: (path: string): Promise<DeleteResult> => post("delete", { path: toPath(path) }) as Promise<DeleteResult>,
+    delete: (projectId: string, path: string): Promise<DeleteResult> =>
+      post(projectId, "delete", { path: toPath(projectId, path) }) as Promise<DeleteResult>,
   };
 }
 

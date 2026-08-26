@@ -20,14 +20,14 @@
     {
       "path": ".kazibee/index.d.ts",
       "role": "declaration",
-      "bytes": 5415,
-      "sha256": "0e6e25d7bdd2ff9f2ab3ad8adc82054da87513cca1a5cd7e40b3cca3a2b38b04"
+      "bytes": 6103,
+      "sha256": "c91d9770c15096d82045ba2bb5f95a83d648b4ee993e4c52ec4eb3f9c428e79d"
     },
     {
       "path": "llm.txt",
       "role": "manual",
-      "bytes": 4041,
-      "sha256": "511a6637b37cbad552ac9f1f725ef64d3da553f13c94abc334268426aaa576df"
+      "bytes": 4873,
+      "sha256": "d78ce09c5ad4b9b728bc2274ee8be91b281eb7083454c860bd5d3847c3e7286e"
     },
     {
       "path": "package.json",
@@ -44,8 +44,8 @@
     {
       "path": "src/client.ts",
       "role": "source",
-      "bytes": 9345,
-      "sha256": "fcfa0008532ecbaef2d0774cce213009c61cd4dfcf886de761fd39d215d3db7f"
+      "bytes": 10745,
+      "sha256": "5f1051f13278898c29f8b6aaad6db2a609b2319f47a9e47e3848a6689c2d1065"
     },
     {
       "path": "src/command.ts",
@@ -60,5 +60,5 @@
       "sha256": "b283eaba87523c6614795fea8c643c21cb816791eecae4cb642e325309b5d7e1"
     }
   ],
-  "contentDigest": "2d7f5d1696a2f4ef31a1d7b16c86ca9ae7e0be92251f9ba3226bc11e315afd89"
+  "contentDigest": "8325b894ec085f4fd2342e219576cb908e34ba877b72ce6d2145952da11ec7e4"
 }
