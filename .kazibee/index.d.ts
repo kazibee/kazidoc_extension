@@ -94,6 +94,28 @@ export type DeleteResult = {
 	path: string;
 	deleted: number;
 } | FsError;
+export type ImageMediaType = "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "image/avif";
+export type ReadImageResult = {
+	ok: true;
+	mode: "image";
+	path: string;
+	mediaType: ImageMediaType;
+	bytes: number;
+	width?: number;
+	height?: number;
+	/** Presigned R2 GET URL — a bearer credential. Consume immediately; never save it into a document. */
+	url: string;
+	expiresInSeconds: number;
+	expiresAt: string;
+} | FsError;
+export type WriteImageResult = {
+	ok: true;
+	path: string;
+	created: boolean;
+	mediaType: string;
+	bytes: number;
+	revision: string;
+} | FsError;
 declare function createClient(env: Env): {
 	/** List the projects this API key can access (project_id + name). */
 	listProjects: () => Promise<ProjectEntry[]>;
@@ -119,6 +141,20 @@ declare function createClient(env: Env): {
 	rangeReplace: (projectId: string, id: string, newContent: string) => Promise<EditResult>;
 	/** Set the absolute indentation (spaces) of the span named by a handleId. */
 	rangeIndent: (projectId: string, id: string, indent: number) => Promise<EditResult>;
+	/**
+	 * Read a private image: returns metadata plus a presigned GET URL valid for
+	 * exactly 300 seconds. Consume the URL immediately (fetch/view it now);
+	 * never write it into a document — embed the relative path instead.
+	 */
+	readImage: (projectId: string, path: string) => Promise<ReadImageResult>;
+	/**
+	 * Upload an image (png/jpeg/webp/gif/avif, max 10 MiB) to an exact
+	 * project-relative path. Accepts raw bytes, a Blob, a base64 string, or a
+	 * local filesystem path ("/abs/…", "./rel/…", "~/…" — requires sandbox
+	 * read access to that directory). Ancestor folders are auto-created;
+	 * extension, mediaType, and actual bytes must agree.
+	 */
+	writeImage: (projectId: string, path: string, image: Blob | ArrayBuffer | Uint8Array | string, mediaType: ImageMediaType) => Promise<WriteImageResult>;
 	/** Create a directory (idempotent). A folder named like "pricing.csv" is a CSV workbook. */
 	mkdir: (projectId: string, path: string) => Promise<MkdirResult>;
 	/** Move or rename a file or an entire folder subtree. */
@@ -142,6 +178,8 @@ declare function main(env: Env): {
 	editDelete: (projectId: string, path: string, line: string) => Promise<EditResult>;
 	rangeReplace: (projectId: string, id: string, newContent: string) => Promise<EditResult>;
 	rangeIndent: (projectId: string, id: string, indent: number) => Promise<EditResult>;
+	readImage: (projectId: string, path: string) => Promise<ReadImageResult>;
+	writeImage: (projectId: string, path: string, image: Blob | ArrayBuffer | Uint8Array | string, mediaType: ImageMediaType) => Promise<WriteImageResult>;
 	mkdir: (projectId: string, path: string) => Promise<MkdirResult>;
 	move: (projectId: string, from: string, to: string) => Promise<TransferResult>;
 	copy: (projectId: string, from: string, to: string) => Promise<TransferResult>;
