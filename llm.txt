@@ -91,6 +91,23 @@ Linking between documents
   standard percent-encoding; the literal-path rule applies only to relative
   links.
 
+Mermaid diagrams
+- A fenced code block tagged `mermaid` in a .md document renders as a live SVG
+  diagram in the Kazidoc document view. Standard Mermaid syntax is supported
+  (flowchart/graph, sequenceDiagram, classDiagram, stateDiagram, erDiagram,
+  gantt, pie, ...).
+- Author it with ordinary write/edit calls — just a normal fenced block in the
+  Markdown; no special API:
+  ```mermaid
+  graph TD
+    A[Start] --> B{Decision}
+    B -->|yes| C[Ship]
+  ```
+- If the diagram fails to parse, the document still renders and the block falls
+  back to showing its raw source as a plain code block.
+- Diagrams are display-only (no click/script directives; mermaid runs in strict
+  security mode). Prefer a frame when the user needs interactivity.
+
 CSV workbooks
 - A FOLDER whose name ends in .csv (e.g. "pricing.csv") renders as one workbook;
   each *.csv file inside is a tab, ordered by filename (numeric prefixes like
