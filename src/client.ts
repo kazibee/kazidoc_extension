@@ -50,6 +50,27 @@ export type MkdirResult = { ok: true; path: string } | FsError;
 export type TransferResult = { ok: true; from: string; to: string; moved: number } | FsError;
 export type DeleteResult = { ok: true; path: string; deleted: number } | FsError;
 
+export type ImageMediaType = "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "image/avif";
+
+export type ReadImageResult =
+  | {
+      ok: true;
+      mode: "image";
+      path: string;
+      mediaType: ImageMediaType;
+      bytes: number;
+      width?: number;
+      height?: number;
+      /** Presigned R2 GET URL — a bearer credential. Consume immediately; never save it into a document. */
+      url: string;
+      expiresInSeconds: number;
+      expiresAt: string;
+    }
+  | FsError;
+export type WriteImageResult =
+  | { ok: true; path: string; created: boolean; mediaType: string; bytes: number; revision: string }
+  | FsError;
+
 const PROJECT_ID_PATTERN = /^p_[A-Za-z0-9]+$/;
 const DRIVE_URL_PATTERN = /^\/drive\/(p_[A-Za-z0-9]+)(?:\/(.*))?$/;
 
@@ -166,6 +187,65 @@ export function createClient(env: Env) {
     return response.json();
   }
 
+  /** Raw-body POST for binary uploads (write_image). */
+  async function postRaw(
+    projectId: string,
+    pathname: string,
+    params: Record<string, string>,
+    body: Uint8Array,
+    contentType: string,
+  ): Promise<unknown> {
+    const url = new URL(`${root(projectId)}/${pathname}`);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": contentType },
+      // Copy into a plain ArrayBuffer: satisfies BodyInit across TS lib targets.
+      body: new Uint8Array(body).buffer as ArrayBuffer,
+    });
+    return response.json();
+  }
+
+  /**
+   * Normalize writeImage input to Uint8Array.
+   * Strings: a local filesystem path (starts with "/", "./", "../", or "~/")
+   * is read from disk; a data: URL or bare base64 string is decoded.
+   */
+  async function toBytes(image: Blob | ArrayBuffer | Uint8Array | string): Promise<Uint8Array> {
+    if (typeof image === "string") {
+      if (/^(\/|\.\.?\/|~\/)/.test(image)) return readLocalFile(image);
+      const binary = atob(image.replace(/^data:[^,]*,/, ""));
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+    if (image instanceof Uint8Array) return image;
+    if (image instanceof ArrayBuffer) return new Uint8Array(image);
+    return new Uint8Array(await image.arrayBuffer());
+  }
+
+  /** Read a local image file inside the sandbox's granted directories. */
+  async function readLocalFile(path: string): Promise<Uint8Array> {
+    const deno = (globalThis as { Deno?: { readFile(p: string): Promise<Uint8Array>; env?: { get(k: string): string | undefined } } }).Deno;
+    if (!deno?.readFile) {
+      throw new Error(`Cannot read local file "${path}": no filesystem access in this runtime. Pass bytes or base64 instead.`);
+    }
+    let resolved = path;
+    if (path.startsWith("~/")) {
+      const home = (() => { try { return deno.env?.get("HOME"); } catch { return undefined; } })();
+      if (!home) throw new Error(`Cannot expand "~" in "${path}". Pass an absolute path.`);
+      resolved = `${home}/${path.slice(2)}`;
+    }
+    try {
+      return await deno.readFile(resolved);
+    } catch (error) {
+      throw new Error(
+        `Cannot read local image "${resolved}": ${error instanceof Error ? error.message : String(error)}. ` +
+          "The sandbox must be granted read access to this directory (allowWorkspace).",
+      );
+    }
+  }
+
   return {
     /** List the projects this API key can access (project_id + name). */
     listProjects: (): Promise<ProjectEntry[]> => listProjects(),
@@ -212,6 +292,35 @@ export function createClient(env: Env) {
     /** Set the absolute indentation (spaces) of the span named by a handleId. */
     rangeIndent: (projectId: string, id: string, indent: number): Promise<EditResult> =>
       post(projectId, "range_indent", { id, indent }) as Promise<EditResult>,
+
+    /**
+     * Read a private image: returns metadata plus a presigned GET URL valid for
+     * exactly 300 seconds. Consume the URL immediately (fetch/view it now);
+     * never write it into a document — embed the relative path instead.
+     */
+    readImage: (projectId: string, path: string): Promise<ReadImageResult> =>
+      get(projectId, "read_image", { path: toPath(projectId, path) }) as Promise<ReadImageResult>,
+
+    /**
+     * Upload an image (png/jpeg/webp/gif/avif, max 10 MiB) to an exact
+     * project-relative path. Accepts raw bytes, a Blob, a base64 string, or a
+     * local filesystem path ("/abs/…", "./rel/…", "~/…" — requires sandbox
+     * read access to that directory). Ancestor folders are auto-created;
+     * extension, mediaType, and actual bytes must agree.
+     */
+    writeImage: async (
+      projectId: string,
+      path: string,
+      image: Blob | ArrayBuffer | Uint8Array | string,
+      mediaType: ImageMediaType,
+    ): Promise<WriteImageResult> =>
+      postRaw(
+        projectId,
+        "write_image",
+        { path: toPath(projectId, path) },
+        await toBytes(image),
+        mediaType,
+      ) as Promise<WriteImageResult>,
 
     /** Create a directory (idempotent). A folder named like "pricing.csv" is a CSV workbook. */
     mkdir: (projectId: string, path: string): Promise<MkdirResult> =>

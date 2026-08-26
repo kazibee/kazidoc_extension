@@ -36,6 +36,8 @@ Typical intents to map (pid = resolved projectId)
 - "remove this line"             -> editDelete(pid, path, line)
 - "rewrite lines N-M"            -> readRange(...) then rangeReplace(pid, handleId, newContent)
 - "re-indent this block"         -> readRange(...) then rangeIndent(pid, handleId, spaces)
+- "show/view this image"         -> readImage(pid, path)
+- "upload/save this image"       -> writeImage(pid, path, image, mediaType)
 - "make a folder"                -> mkdir(pid, path)
 - "rename/move"                  -> move(pid, from, to)
 - "duplicate"                    -> copy(pid, from, to)
@@ -58,6 +60,24 @@ Editing rules
   STALE_HANDLE — call readRange again and retry with the fresh handle.
 - Every error response includes errorCode, message, and requiredAction telling
   you exactly how to recover.
+
+Image rules
+- Images (png/jpeg/webp/gif/avif) are ordinary files at ordinary paths: they
+  appear in listdir, and move/copy/delete work normally. Text operations on an
+  image fail with NOT_TEXT_FILE (use readImage); readImage on a text file fails
+  with NOT_IMAGE (use read). grep never matches images.
+- readImage(pid, path) returns metadata plus a presigned URL valid for exactly
+  300 seconds. Consume it immediately (fetch/view now). NEVER save the signed
+  URL into a document, memory, or notes — it expires and is a bearer credential.
+- To embed an image in Markdown, write a RELATIVE path, resolved against the
+  document's folder: ![Diagram](./images/diagram.png)
+- writeImage(pid, path, image, mediaType) accepts raw bytes (Uint8Array /
+  ArrayBuffer / Blob), a base64 string, or a LOCAL FILE PATH string starting
+  with "/", "./", "../", or "~/" (the sandbox needs read access to that
+  directory — pass it via allowWorkspace). Max 10 MiB. The destination
+  extension, mediaType, and actual bytes must agree (MIME_MISMATCH otherwise).
+  SVG is not supported.
+  Example: writeImage(pid, "docs/images/chart.png", "/tmp/chart.png", "image/png")
 
 CSV workbooks
 - A FOLDER whose name ends in .csv (e.g. "pricing.csv") renders as one workbook;
