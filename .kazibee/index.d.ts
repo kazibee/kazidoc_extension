@@ -23,9 +23,6 @@ export interface ListDirEntry {
 	name: string;
 	path: string;
 	kind: "file" | "dir";
-	size_bytes: number;
-	line_count: number;
-	updated_at: string;
 }
 export type ListDirResult = {
 	ok: true;

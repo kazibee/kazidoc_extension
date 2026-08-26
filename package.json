@@ -13,9 +13,10 @@
     "manifestVersion": 1,
     "id": "kazidoc",
     "description": "Read, write, edit, and organize Kazidoc project files like a remote filesystem.",
-    "brief": "Navigate, read, grep, write, edit, and reorganize a Kazidoc project's files and folders, including CSV workbooks.",
+    "brief": "Navigate, read, grep, write, edit, and reorganize a Kazidoc project's files and folders, including CSV workbooks. Use for documents hosted at https://kazibee.com.",
     "tags": [
       "kazidoc",
+      "kazibee-documents",
       "documents",
       "markdown",
       "files",

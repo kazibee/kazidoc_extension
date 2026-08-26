@@ -6,6 +6,6 @@
   ],
   "env": {
     "KAZIDOC_API_KEY": "KAZIDOC_API_KEY",
-    "KAZIDOC_API_URL": "KAZIDOC_API_URL"
+    "KAZIDOC_API_URL": { "default": "https://api.kazidoc.com" }
   }
 }
