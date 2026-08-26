@@ -87,6 +87,36 @@ CSV workbooks
   overrides one tab. Companion .css files are attached assets, not tabs.
 - Build workbooks with ordinary mkdir + write calls — no special API.
 
+Frames (interactive HTML/JS blocks in Markdown)
+- A <frame> block inside a .md file renders in the Kazidoc document view as a
+  LIVE sandboxed iframe: raw HTML + inline <script> + Tailwind utility classes
+  (full Tailwind v4, arbitrary values included) — no build step, no CDN.
+- Author it with ordinary write/edit calls. Delimiters must each sit alone on
+  their own line at top level; the body is an HTML fragment (no <html>, <head>,
+  <body>, <base>, or meta[http-equiv]):
+  <frame height="480" title="Revenue dashboard">
+  <div class="grid min-h-screen place-items-center bg-slate-950 text-white">
+    <button id="counter" class="rounded-lg bg-blue-600 px-5 py-3">Count: 0</button>
+  </div>
+  <script>
+    let n = 0;
+    document.querySelector('#counter').addEventListener('click', (e) => {
+      e.target.textContent = `Count: ${++n}`;
+    });
+  </script>
+  </frame>
+- Attributes (both optional, double-quoted only): height (int px, 160–2000,
+  default 480) and title (max 200 chars). Unknown or malformed attributes make
+  the frame render as a non-executable error card.
+- Limits: max 8 frames per document, 256 KiB per frame body. Frames cannot
+  nest. To SHOW frame syntax without running it, put it inside a fenced code
+  block.
+- Sandbox: frames get no Kazidoc API, cookies, network access, parent DOM, or
+  message channel. External scripts, imports, fetch, and workers are blocked —
+  keep everything inline and self-contained.
+- Editing the document automatically replaces its frames with fresh ones; no
+  extra call is needed.
+
 Code call examples
 Every sandbox module must use this entry-point shape:
 ```ts

@@ -39,8 +39,9 @@ export default async function ({ tools }) {
 }
 ```
 
-See `llm.txt` for the full verb reference, reading/editing rules, and the
-CSV workbook convention.
+See `llm.txt` for the full verb reference, reading/editing rules, the CSV
+workbook convention, and Frames (live sandboxed HTML/JS/Tailwind blocks
+authored directly in Markdown documents).
 
 ## Layout
 
