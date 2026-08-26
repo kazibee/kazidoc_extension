@@ -20,8 +20,8 @@
     {
       "path": ".kazibee/index.d.ts",
       "role": "declaration",
-      "bytes": 4934,
-      "sha256": "39bb433659ec07363e8c6f3f26b389ee9aafb75bcb234f3debcbbb985811f326"
+      "bytes": 5415,
+      "sha256": "0e6e25d7bdd2ff9f2ab3ad8adc82054da87513cca1a5cd7e40b3cca3a2b38b04"
     },
     {
       "path": "llm.txt",
@@ -38,20 +38,20 @@
     {
       "path": "permissions.json",
       "role": "permissions",
-      "bytes": 207,
-      "sha256": "30a5d980621d29f6b424132da85449ea6f82f4cbfacee0d6131b4ef02e982bec"
+      "bytes": 252,
+      "sha256": "15734f46b6627d792f2b45707c6df3900100309a8434099395c0d8810f2e072d"
     },
     {
       "path": "src/client.ts",
       "role": "source",
-      "bytes": 7823,
-      "sha256": "5b50ba6cbeb68c2ecc2d128b3658a6ebfdb6a3da6821bc171d3882b40c2bcd4f"
+      "bytes": 9345,
+      "sha256": "fcfa0008532ecbaef2d0774cce213009c61cd4dfcf886de761fd39d215d3db7f"
     },
     {
       "path": "src/command.ts",
       "role": "command",
-      "bytes": 2123,
-      "sha256": "987479b2ada0fbbd0806ffc87e7c41f0f54f2572f57d88ae912b787935e73093"
+      "bytes": 4289,
+      "sha256": "2396b6e8576bf6b3c980d5ce22794c70baf910e099d7f4a3bd0584f7c260edb3"
     },
     {
       "path": "src/index.ts",
@@ -60,5 +60,5 @@
       "sha256": "b283eaba87523c6614795fea8c643c21cb816791eecae4cb642e325309b5d7e1"
     }
   ],
-  "contentDigest": "cc639bfc7951efa4d77f999c97972699e6ad78bb36150365100dee9c2f205d9a"
+  "contentDigest": "2d7f5d1696a2f4ef31a1d7b16c86ca9ae7e0be92251f9ba3226bc11e315afd89"
 }

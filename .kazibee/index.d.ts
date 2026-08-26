@@ -9,6 +9,12 @@ export interface Env {
 	KAZIDOC_API_KEY?: string;
 	/** Override for local development, e.g. http://localhost:6005 */
 	KAZIDOC_API_URL?: string;
+	/**
+	 * The project this workspace is bound to (p_...). Keys may access many
+	 * projects; when unset, the single accessible project is auto-selected and
+	 * multiple projects raise an error listing the choices.
+	 */
+	KAZIDOC_PROJECT_ID?: string;
 }
 export interface FsError {
 	ok: false;
@@ -88,6 +94,11 @@ export type DeleteResult = {
 	deleted: number;
 } | FsError;
 declare function createClient(env: Env): {
+	/** List the projects this API key can access (project_id + name). */
+	listProjects: () => Promise<Array<{
+		project_id: string;
+		name: string;
+	}>>;
 	/** List a directory. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL. */
 	listdir: (path?: string) => Promise<ListDirResult>;
 	/** Regex search across the project's text files. include is a glob like "*.md". */
@@ -119,6 +130,10 @@ declare function createClient(env: Env): {
 };
 export type KazidocClient = ReturnType<typeof createClient>;
 declare function main(env: Env): {
+	listProjects: () => Promise<Array<{
+		project_id: string;
+		name: string;
+	}>>;
 	listdir: (path?: string) => Promise<ListDirResult>;
 	grep: (pattern: string, path?: string, include?: string) => Promise<GrepResult>;
 	read: (path: string) => Promise<ReadResult>;

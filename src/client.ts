@@ -10,6 +10,12 @@ export interface Env {
   KAZIDOC_API_KEY?: string;
   /** Override for local development, e.g. http://localhost:6005 */
   KAZIDOC_API_URL?: string;
+  /**
+   * The project this workspace is bound to (p_...). Keys may access many
+   * projects; when unset, the single accessible project is auto-selected and
+   * multiple projects raise an error listing the choices.
+   */
+  KAZIDOC_PROJECT_ID?: string;
 }
 
 export interface FsError {
@@ -50,23 +56,47 @@ export function createClient(env: Env) {
   }
 
   /**
-   * The API key is project-scoped, so the project is discovered from the key
-   * itself via /v1/whoami on first use — no project id configuration needed.
+   * A key may access many projects. The bound project comes from
+   * KAZIDOC_PROJECT_ID when configured; otherwise it is discovered from
+   * GET /v1/projects — auto-selected when exactly one project is accessible,
+   * and an error listing the choices when there are several.
    */
-  let projectId: string | null = null;
-  async function root(): Promise<string> {
-    if (projectId) return `${base}/v1/projects/${projectId}`;
-    const response = await fetch(`${base}/v1/whoami`, {
+  let projectId: string | null = env.KAZIDOC_PROJECT_ID ?? null;
+
+  async function listProjects(): Promise<Array<{ project_id: string; name: string }>> {
+    const response = await fetch(`${base}/v1/projects`, {
       headers: { authorization: `Bearer ${key}` },
     });
-    const identity = (await response.json()) as { project_id?: string; message?: string };
-    if (!response.ok || !identity.project_id) {
+    const body = (await response.json().catch(() => ({}))) as {
+      projects?: Array<{ project_id: string; name: string }>;
+      message?: string;
+    };
+    if (!response.ok || !Array.isArray(body.projects)) {
       throw new Error(
-        `Kazidoc authentication failed (${response.status}): ${identity.message ?? "invalid API key"}. ` +
+        `Kazidoc authentication failed (${response.status}): ${body.message ?? "invalid API key"}. ` +
           "Ask the user for a valid key: kazibee kazidoc login <API_KEY>",
       );
     }
-    projectId = identity.project_id;
+    return body.projects;
+  }
+
+  async function root(): Promise<string> {
+    if (projectId) return `${base}/v1/projects/${projectId}`;
+    const projects = await listProjects();
+    if (projects.length === 0) {
+      throw new Error(
+        "This Kazidoc API key has no accessible projects. Grant it project access " +
+          "in the Kazidoc web app under Settings -> API keys.",
+      );
+    }
+    if (projects.length > 1) {
+      const options = projects.map((p) => `${p.name} (${p.project_id})`).join(", ");
+      throw new Error(
+        `This Kazidoc API key can access ${projects.length} projects: ${options}. ` +
+          "Choose one: kazibee kazidoc login <API_KEY> --project <projectId>",
+      );
+    }
+    projectId = projects[0].project_id;
     return `${base}/v1/projects/${projectId}`;
   }
 
@@ -74,8 +104,9 @@ export function createClient(env: Env) {
    * Accept plain project-relative paths OR pasted Kazidoc drive URLs, e.g.
    *   https://kazidoc.com/drive/p_abc123XYZ456/notes/intro.md
    *   http://localhost:6001/drive/p_abc123XYZ456/notes/intro.md
-   * The /drive/<id> prefix is stripped; the key's project is authoritative
-   * and a mismatched id fails fast.
+   * The /drive/<id> prefix is stripped; the configured/selected project is
+   * authoritative and a mismatched id fails fast — a pasted URL never
+   * switches the bound project.
    */
   function toPath(input: string): string {
     if (!/^https?:\/\//i.test(input)) return input;
@@ -85,7 +116,10 @@ export function createClient(env: Env) {
       throw new Error(`Not a Kazidoc project URL: ${input}. Expected .../drive/<project>/<path>`);
     }
     if (projectId && match[1] !== projectId) {
-      throw new Error(`URL points at project ${match[1]}, but this API key belongs to ${projectId}.`);
+      throw new Error(
+        `URL points at project ${match[1]}, but this workspace is bound to ${projectId}. ` +
+          "Rebind with: kazibee kazidoc login <API_KEY> --project " + match[1],
+      );
     }
     return decodeURIComponent(match[2] ?? "");
   }
@@ -109,6 +143,9 @@ export function createClient(env: Env) {
   }
 
   return {
+    /** List the projects this API key can access (project_id + name). */
+    listProjects: (): Promise<Array<{ project_id: string; name: string }>> => listProjects(),
+
     /** List a directory. Omit path (or pass "") for the project root. Accepts a pasted Kazidoc URL. */
     listdir: (path = ""): Promise<ListDirResult> => get("listdir", { path: toPath(path) }) as Promise<ListDirResult>,
 
