@@ -79,6 +79,18 @@ Image rules
   SVG is not supported.
   Example: writeImage(pid, "docs/images/chart.png", "/tmp/chart.png", "image/png")
 
+Linking between documents
+- To link another document in Markdown, write a RELATIVE path resolved against
+  the document's folder, exactly as the file is named — spaces and all. Kazidoc
+  resolves relative link paths LITERALLY: never percent-encode them.
+  [Workflow Nodes](<./Workflow Nodes.md>)   — correct (angle brackets when the
+  path contains spaces)
+  [Workflow Nodes](./Workflow%20Nodes.md)   — WRONG: resolves to a file
+  literally named "Workflow%20Nodes.md" and renders Path not found.
+- Absolute https://kazidoc.com/drive/... URLs are ordinary web URLs and DO use
+  standard percent-encoding; the literal-path rule applies only to relative
+  links.
+
 CSV workbooks
 - A FOLDER whose name ends in .csv (e.g. "pricing.csv") renders as one workbook;
   each *.csv file inside is a tab, ordered by filename (numeric prefixes like
