@@ -26,8 +26,8 @@
     {
       "path": "llm.txt",
       "role": "manual",
-      "bytes": 7713,
-      "sha256": "59c153935950d212974546e07c8b96b2f43b5ae6e3b96328abbe163ee4ccbf07"
+      "bytes": 8465,
+      "sha256": "7ef732249961f9342f19a6df80cf7d50491374e0655e832f633c608ec6694b2e"
     },
     {
       "path": "package.json",
@@ -60,5 +60,5 @@
       "sha256": "402f8753c58927f519bf72afb9d36f0ab084ba432cc31a1e046d5a7d511d2051"
     }
   ],
-  "contentDigest": "b6db4a34474bd245435ff2b8f6975421cb91aa111738b53184aa4ad7b1aa2641"
+  "contentDigest": "ed9800a7a00d0e8fe7e2864695727b411df29f781e4068081ff80785ea4e14c8"
 }

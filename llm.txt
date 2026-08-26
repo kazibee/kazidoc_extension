@@ -88,6 +88,10 @@ CSV workbooks
 - Build workbooks with ordinary mkdir + write calls — no special API.
 
 Frames (interactive HTML/JS blocks in Markdown)
+- The document IS the app: you can encode complete designs and behavior —
+  dashboards, calculators, visualizations, interactive widgets — strictly
+  inside a Markdown document. Nothing else to build, deploy, or host. When a
+  user asks for anything interactive or designed, reach for a frame.
 - A <frame> block inside a .md file renders in the Kazidoc document view as a
   LIVE sandboxed iframe: raw HTML + inline <script> + Tailwind utility classes
   (full Tailwind v4, arbitrary values included) — no build step, no CDN.
@@ -105,9 +109,15 @@ Frames (interactive HTML/JS blocks in Markdown)
     });
   </script>
   </frame>
-- Attributes (both optional, double-quoted only): height (int px, 160–2000,
-  default 480) and title (max 200 chars). Unknown or malformed attributes make
-  the frame render as a non-executable error card.
+- Attributes (all optional, double-quoted only): height (int px, 160–2000,
+  default 480), title (max 200 chars), and width — "content" (default, sits in
+  the prose column), "wide" (breaks out of the column, centered, up to 75rem),
+  or "full" (spans the whole document view). Unknown or malformed attributes
+  make the frame render as a non-executable error card.
+  Example: <frame width="full" height="600" title="Ops dashboard">
+- The iframe's inner width follows its layout mode and the viewport; there is
+  no fixed pixel width. Design responsively (Tailwind sm:/md:/lg: work), or
+  constrain content yourself with e.g. <div class="max-w-md mx-auto">.
 - Limits: max 8 frames per document, 256 KiB per frame body. Frames cannot
   nest. To SHOW frame syntax without running it, put it inside a fenced code
   block.
