@@ -33,7 +33,7 @@
       "path": "package.json",
       "role": "manifest",
       "bytes": 1242,
-      "sha256": "0bf15d266be36ebdb5ecc2c990e7113eadd1582396b4ba8d03c8624438d7da6f"
+      "sha256": "8e878b3c0aed0a494da90ecffc0572bdfb01f67f002c2e3720a85ed9bade32e9"
     },
     {
       "path": "permissions.json",
@@ -60,5 +60,5 @@
       "sha256": "402f8753c58927f519bf72afb9d36f0ab084ba432cc31a1e046d5a7d511d2051"
     }
   ],
-  "contentDigest": "fb07b004964b120611a9e6012260a2f547add679d45f0d1b20b080392231ad5a"
+  "contentDigest": "21deab26150166a018b544231301224be58acbfa01607bd4b20589a811ffe9be"
 }
