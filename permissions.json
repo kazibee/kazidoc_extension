@@ -8,5 +8,14 @@
     "KAZIDOC_API_KEY": "KAZIDOC_API_KEY",
     "KAZIDOC_API_URL": { "default": "https://api.kazidoc.com" },
     "KAZIDOC_PROJECT_ID": { "default": "" }
+  },
+  "methods": {
+    "listProjects": { "read": true, "write": false },
+    "getId": { "read": true, "write": false },
+    "listdir": { "read": true, "write": false },
+    "grep": { "read": true, "write": false },
+    "read": { "read": true, "write": false },
+    "readRange": { "read": true, "write": false },
+    "readImage": { "read": true, "write": false }
   }
 }
