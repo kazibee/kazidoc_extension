@@ -38,8 +38,8 @@
     {
       "path": "permissions.json",
       "role": "permissions",
-      "bytes": 615,
-      "sha256": "6978b3ccaf0de6b44e86630217e8ff283aa676cf619edb2e9ee6537cf5b60df8"
+      "bytes": 570,
+      "sha256": "d63dc5ceb725ffeccc3c75898e16e2403ef42d9f53fea3e7148be9d6c01041f8"
     },
     {
       "path": "src/client.ts",
@@ -50,8 +50,8 @@
     {
       "path": "src/command.ts",
       "role": "command",
-      "bytes": 4289,
-      "sha256": "2396b6e8576bf6b3c980d5ce22794c70baf910e099d7f4a3bd0584f7c260edb3"
+      "bytes": 2757,
+      "sha256": "cd88a105cfc8547f78aa4bf3268352967be962c8ceade328aa818bbff52868ee"
     },
     {
       "path": "src/index.ts",
@@ -60,5 +60,5 @@
       "sha256": "402f8753c58927f519bf72afb9d36f0ab084ba432cc31a1e046d5a7d511d2051"
     }
   ],
-  "contentDigest": "d82a560bf8f8dc0447ee88bc6da43ae83537a035e41900a08e62b864436321b5"
+  "contentDigest": "34c02c4199cfdaaa639b9f8662aa301cb67b8c224f45e10898ebd17269bf0a1a"
 }
