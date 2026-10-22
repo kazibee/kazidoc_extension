@@ -21,7 +21,7 @@ Resolving the projectId
 Auth requirements
 - KAZIDOC_API_KEY (kzd_...) — may access one or many projects.
 - Optional KAZIDOC_API_URL for local dev (default https://api.kazidoc.com)
-- If auth fails, instruct user to run: kazibee kazidoc login <API_KEY>
+- If auth fails, ask the user to run login in Settings → Tools → kazidoc → Commands with their API key as the argument.
 
 Typical intents to map (pid = resolved projectId)
 - "which project is this URL"    -> getId(url)

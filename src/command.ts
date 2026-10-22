@@ -17,7 +17,7 @@ export interface LoginResult {
 export async function login(env: Record<string, string>, ...args: string[]): Promise<LoginResult> {
   if (args.includes("--help")) {
     console.log([
-      "Usage: kazibee kazidoc login <API_KEY> [API_URL]",
+      "Usage: login <API_KEY> [API_URL]  (Settings → Tools → kazidoc → Commands)",
       "",
       "  API_KEY    A Kazidoc API key (kzd_...). Create one in the Kazidoc web app",
       "             under Settings -> API keys. It is shown exactly once.",
@@ -32,7 +32,7 @@ export async function login(env: Record<string, string>, ...args: string[]): Pro
   const KAZIDOC_API_URL = args[1] || env.KAZIDOC_API_URL;
 
   if (!KAZIDOC_API_KEY || !KAZIDOC_API_KEY.startsWith("kzd_")) {
-    throw new Error("Missing or invalid API key (must start with kzd_). Usage: kazibee kazidoc login <API_KEY>");
+    throw new Error("Missing or invalid API key (must start with kzd_). Usage: login <API_KEY>");
   }
 
   const base = (KAZIDOC_API_URL ?? "https://api.kazidoc.com").replace(/\/$/, "");

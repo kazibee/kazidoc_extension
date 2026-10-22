@@ -78,7 +78,7 @@ export function createClient(env: Env) {
   const key = env.KAZIDOC_API_KEY;
   const base = (env.KAZIDOC_API_URL ?? "https://api.kazidoc.com").replace(/\/$/, "");
   if (!key) {
-    throw new Error("Missing KAZIDOC_API_KEY. Run: kazibee kazidoc login <API_KEY>");
+    throw new Error("Missing KAZIDOC_API_KEY. Ask the user to run login in Settings → Tools → kazidoc → Commands with their API key.");
   }
 
   async function listProjects(): Promise<ProjectEntry[]> {
@@ -92,7 +92,7 @@ export function createClient(env: Env) {
     if (!response.ok || !Array.isArray(body.projects)) {
       throw new Error(
         `Kazidoc authentication failed (${response.status}): ${body.message ?? "invalid API key"}. ` +
-          "Ask the user for a valid key: kazibee kazidoc login <API_KEY>",
+          "Ask the user to run login in Settings → Tools → kazidoc → Commands with a valid API key.",
       );
     }
     return body.projects;

@@ -11,14 +11,14 @@ project-scoped `kzd_` API key.
 
 ## Setup
 
-Create an API key in the Kazidoc web app under **Settings → API keys**
-(shown exactly once), then:
+Install it in the Kazibee desktop app from **Settings → Tools → Add Extension → Install**
+with source `github:kazibee/kazidoc_extension`.
 
-```bash
-kazibee kazidoc login <API_KEY>
-# local development against a dev server:
-kazibee kazidoc login <API_KEY> http://localhost:6100
-```
+Create an API key in the Kazidoc web app under **Settings → API keys**
+(shown exactly once). Then, in the desktop app, open **Settings → Tools → kazidoc →
+Commands** and run `login` with the key as its argument (`<API_KEY>`). For local
+development against a dev server, pass the URL as a second argument
+(`<API_KEY> http://localhost:6100`).
 
 The key is project-scoped, so the project is detected automatically — no
 project id to configure. Login verifies the key against the live API before
