@@ -103,8 +103,11 @@ Mermaid diagrams
     A[Start] --> B{Decision}
     B -->|yes| C[Ship]
   ```
-- If the diagram fails to parse, the document still renders and the block falls
-  back to showing its raw source as a plain code block.
+- A diagram that fails to parse does NOT render for the user. The write/edit
+  still succeeds, but its result then includes
+  `diagnostics: { mermaid: [{ line, message }] }` (line = the opening fence).
+  Always check write/edit results for `diagnostics`; if present, you made a
+  mistake — fix the mermaid syntax and write again until it is gone.
 - Diagrams are display-only (no click/script directives; mermaid runs in strict
   security mode). Prefer a frame when the user needs interactivity.
 

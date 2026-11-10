@@ -44,8 +44,16 @@ export type ReadRangeResult =
 export type GrepResult =
   | { ok: true; files: Array<{ path: string; matchCount: number; lines: number[]; samples: Array<{ line_number: number; line_content: string }> }>; matchCount: number; fileCount: number; truncated: boolean }
   | FsError;
-export type WriteResult = { ok: true; path: string; created: boolean; lines: number } | FsError;
-export type EditResult = { ok: true; path: string; lines: number } | FsError;
+/**
+ * Present on a successful write/edit of a .md file only when something in it
+ * will not render. The write still succeeded — re-read and fix the content.
+ */
+export type Diagnostics = {
+  /** Mermaid blocks that failed to parse; `line` is the opening fence's 1-indexed line. */
+  mermaid: { line: number; message: string }[];
+};
+export type WriteResult = { ok: true; path: string; created: boolean; lines: number; diagnostics?: Diagnostics } | FsError;
+export type EditResult = { ok: true; path: string; lines: number; diagnostics?: Diagnostics } | FsError;
 export type MkdirResult = { ok: true; path: string } | FsError;
 export type TransferResult = { ok: true; from: string; to: string; moved: number } | FsError;
 export type DeleteResult = { ok: true; path: string; deleted: number } | FsError;
